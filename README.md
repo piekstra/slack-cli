@@ -54,7 +54,6 @@ make build
          - im:read
          - mpim:read
          - reactions:write
-         - search:read
          - team:read
          - users:read
    settings:
@@ -86,7 +85,6 @@ The manifest above includes these scopes:
 - `chat:write` - Send messages
 - `users:read` - List users
 - `reactions:write` - Add/remove reactions
-- `search:read` - Search messages
 - `team:read` - Get workspace info
 
 ## Usage
@@ -150,10 +148,6 @@ slack-cli messages history C1234567890 --limit 50
 
 # Get thread replies
 slack-cli messages thread C1234567890 1234567890.123456
-
-# Search messages
-slack-cli messages search "keyword"
-slack-cli messages search "from:@user in:#channel"
 
 # Add/remove reactions
 slack-cli messages react C1234567890 1234567890.123456 thumbsup

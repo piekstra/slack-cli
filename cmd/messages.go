@@ -160,46 +160,6 @@ var threadCmd = &cobra.Command{
 	},
 }
 
-var searchCmd = &cobra.Command{
-	Use:   "search <query>",
-	Short: "Search for messages",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		c, err := client.New()
-		if err != nil {
-			return err
-		}
-
-		sort, _ := cmd.Flags().GetString("sort")
-		sortDir, _ := cmd.Flags().GetString("sort-dir")
-		count, _ := cmd.Flags().GetInt("count")
-
-		messages, err := c.SearchMessages(args[0], sort, sortDir, count)
-		if err != nil {
-			return err
-		}
-
-		if outputJSON {
-			data, _ := json.MarshalIndent(messages, "", "  ")
-			fmt.Println(string(data))
-			return nil
-		}
-
-		if len(messages) == 0 {
-			fmt.Println("No messages found")
-			return nil
-		}
-
-		for _, m := range messages {
-			ts := formatTimestamp(m.TS)
-			text := truncate(m.Text, 80)
-			fmt.Printf("[%s] %s: %s\n", ts, m.User, text)
-		}
-
-		return nil
-	},
-}
-
 var reactCmd = &cobra.Command{
 	Use:   "react <channel> <timestamp> <emoji>",
 	Short: "Add a reaction to a message",
@@ -260,11 +220,6 @@ func init() {
 
 	messagesCmd.AddCommand(threadCmd)
 	threadCmd.Flags().Int("limit", 100, "Maximum replies to return")
-
-	messagesCmd.AddCommand(searchCmd)
-	searchCmd.Flags().String("sort", "timestamp", "Sort by 'score' or 'timestamp'")
-	searchCmd.Flags().String("sort-dir", "desc", "Sort direction 'asc' or 'desc'")
-	searchCmd.Flags().Int("count", 20, "Number of results")
 
 	messagesCmd.AddCommand(reactCmd)
 	messagesCmd.AddCommand(unreactCmd)

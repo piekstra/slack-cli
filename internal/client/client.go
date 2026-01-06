@@ -442,75 +442,12 @@ func (c *Client) GetThreadReplies(channel, threadTS string, limit int) ([]Messag
 	return allMessages, nil
 }
 
-// SearchMessages searches for messages (handles page-based pagination to reach requested count)
-func (c *Client) SearchMessages(query, sort, sortDir string, count int) ([]Message, error) {
-	var allMessages []Message
-	page := 1
-	remaining := count
-
-	for remaining > 0 && page <= 100 { // Slack max page is 100
-		params := url.Values{}
-		params.Set("query", query)
-		params.Set("sort", sort)
-		params.Set("sort_dir", sortDir)
-		// Request up to 100 at a time (Slack max per page)
-		batchSize := remaining
-		if batchSize > 100 {
-			batchSize = 100
-		}
-		params.Set("count", fmt.Sprintf("%d", batchSize))
-		params.Set("page", fmt.Sprintf("%d", page))
-
-		body, err := c.get("search.messages", params)
-		if err != nil {
-			return nil, err
-		}
-
-		var result struct {
-			Messages struct {
-				Total   int `json:"total"`
-				Matches []struct {
-					Text    string `json:"text"`
-					TS      string `json:"ts"`
-					User    string `json:"user"`
-					Channel struct {
-						ID   string `json:"id"`
-						Name string `json:"name"`
-					} `json:"channel"`
-				} `json:"matches"`
-				Paging struct {
-					Pages int `json:"pages"`
-				} `json:"paging"`
-			} `json:"messages"`
-		}
-		if err := json.Unmarshal(body, &result); err != nil {
-			return nil, err
-		}
-
-		for _, m := range result.Messages.Matches {
-			allMessages = append(allMessages, Message{
-				Text: m.Text,
-				TS:   m.TS,
-				User: m.User,
-			})
-		}
-
-		remaining -= len(result.Messages.Matches)
-
-		// Stop if no more pages or we got fewer results than requested
-		if page >= result.Messages.Paging.Pages || len(result.Messages.Matches) < batchSize {
-			break
-		}
-		page++
-	}
-
-	// Trim to exact count if we got more
-	if len(allMessages) > count {
-		allMessages = allMessages[:count]
-	}
-
-	return allMessages, nil
-}
+// NOTE: Search functionality (search.messages API) was removed because it requires
+// a user token (xoxp-*), not a bot token (xoxb-*). To add search support in the future:
+// 1. Add user token storage (separate from bot token) in keychain
+// 2. Implement OAuth flow for user tokens, or allow manual user token entry
+// 3. Use the user token specifically for SearchMessages calls
+// 4. The search.messages API uses page-based pagination (page, count params, max 100 each)
 
 // AddReaction adds an emoji reaction
 func (c *Client) AddReaction(channel, timestamp, name string) error {
