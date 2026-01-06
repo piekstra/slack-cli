@@ -76,12 +76,10 @@ jobs:
 
           cat > Casks/slack-cli.rb << 'CASKEOF'
           cask "slack-cli" do
-            version "VERSION_PLACEHOLDER"
-            license "MIT"
-
             name "slack-cli"
             desc "Command-line interface for Slack"
             homepage "https://github.com/piekstra/slack-cli"
+            version "VERSION_PLACEHOLDER"
 
             binary "slack-cli"
 
