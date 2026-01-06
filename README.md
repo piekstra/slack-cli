@@ -35,17 +35,38 @@ This opens your browser and handles everything automatically:
 slack-cli auth login
 ```
 
-**First-time setup:**
-1. Go to [api.slack.com/apps](https://api.slack.com/apps) and create or select your app
-2. Go to **OAuth & Permissions** and add this Redirect URL:
-   ```
-   http://localhost:8085/callback
-   ```
-3. Add the scopes listed below under **Bot Token Scopes**
-4. Note your **Client ID** and **Client Secret** from **Basic Information**
-5. Run `slack-cli auth login` and enter credentials when prompted
+**Quick setup (2 minutes):**
 
-Your Client ID/Secret are stored in Keychain for future logins.
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From an app manifest**
+2. Select your workspace
+3. Paste this manifest (YAML tab):
+   ```yaml
+   display_information:
+     name: Slack CLI
+   oauth_config:
+     redirect_urls:
+       - http://localhost:8085/callback
+     scopes:
+       bot:
+         - channels:read
+         - channels:write
+         - chat:write
+         - groups:read
+         - im:read
+         - mpim:read
+         - reactions:write
+         - search:read
+         - team:read
+         - users:read
+   settings:
+     org_deploy_enabled: false
+     socket_mode_enabled: false
+   ```
+4. Click **Create** → **Install to Workspace** → **Allow**
+5. Go to **Basic Information**, copy **Client ID** and **Client Secret**
+6. Run `slack-cli auth login` and paste when prompted
+
+Your credentials are stored in Keychain for future logins.
 
 ### Option 2: Manual Token
 
