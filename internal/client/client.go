@@ -39,7 +39,7 @@ type SlackResponse struct {
 	Error string `json:"error,omitempty"`
 }
 
-func (c *Client) get(endpoint string, params url.Values) ([]byte, error) {
+func (c *Client) get(endpoint string, params url.Values) (result []byte, err error) {
 	reqURL := fmt.Sprintf("%s/%s", baseURL, endpoint)
 	if params != nil {
 		reqURL += "?" + params.Encode()
@@ -57,7 +57,11 @@ func (c *Client) get(endpoint string, params url.Values) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -76,7 +80,7 @@ func (c *Client) get(endpoint string, params url.Values) ([]byte, error) {
 	return body, nil
 }
 
-func (c *Client) post(endpoint string, data interface{}) ([]byte, error) {
+func (c *Client) post(endpoint string, data interface{}) (result []byte, err error) {
 	reqURL := fmt.Sprintf("%s/%s", baseURL, endpoint)
 
 	jsonData, err := json.Marshal(data)
@@ -96,7 +100,11 @@ func (c *Client) post(endpoint string, data interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -147,12 +155,12 @@ type User struct {
 
 // Message represents a Slack message
 type Message struct {
-	Type      string `json:"type"`
-	User      string `json:"user"`
-	Text      string `json:"text"`
-	TS        string `json:"ts"`
-	ThreadTS  string `json:"thread_ts,omitempty"`
-	ReplyCount int   `json:"reply_count,omitempty"`
+	Type       string `json:"type"`
+	User       string `json:"user"`
+	Text       string `json:"text"`
+	TS         string `json:"ts"`
+	ThreadTS   string `json:"thread_ts,omitempty"`
+	ReplyCount int    `json:"reply_count,omitempty"`
 }
 
 // Team represents workspace info

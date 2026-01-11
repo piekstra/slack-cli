@@ -3,11 +3,13 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/piekstra/slack-cli/internal/client"
 	"github.com/spf13/cobra"
+
+	"github.com/piekstra/slack-cli/internal/client"
 )
 
 var messagesCmd = &cobra.Command{
@@ -269,8 +271,10 @@ func formatTimestamp(ts string) string {
 		return ts
 	}
 
-	var sec int64
-	fmt.Sscanf(parts[0], "%d", &sec)
+	sec, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return ts
+	}
 	t := time.Unix(sec, 0)
 	return t.Format("2006-01-02 15:04")
 }

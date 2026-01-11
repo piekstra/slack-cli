@@ -6,8 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/piekstra/slack-cli/internal/keychain"
 	"github.com/spf13/cobra"
+
+	"github.com/piekstra/slack-cli/internal/keychain"
 )
 
 var configCmd = &cobra.Command{

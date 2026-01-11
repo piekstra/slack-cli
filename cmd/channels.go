@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/piekstra/slack-cli/internal/client"
 	"github.com/spf13/cobra"
+
+	"github.com/piekstra/slack-cli/internal/client"
 )
 
 var channelsCmd = &cobra.Command{
