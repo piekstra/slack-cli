@@ -12,12 +12,13 @@ import (
 	"github.com/piekstra/slack-cli/internal/keychain"
 )
 
-const baseURL = "https://slack.com/api"
+const defaultBaseURL = "https://slack.com/api"
 
 // Client handles Slack API interactions
 type Client struct {
 	httpClient *http.Client
 	token      string
+	baseURL    string
 }
 
 // New creates a new Slack client
@@ -30,7 +31,21 @@ func New() (*Client, error) {
 	return &Client{
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 		token:      token,
+		baseURL:    defaultBaseURL,
 	}, nil
+}
+
+// NewWithConfig creates a new Slack client with custom configuration.
+// This is primarily used for testing with httptest servers.
+func NewWithConfig(baseURL, token string, httpClient *http.Client) *Client {
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 30 * time.Second}
+	}
+	return &Client{
+		httpClient: httpClient,
+		token:      token,
+		baseURL:    baseURL,
+	}
 }
 
 // SlackResponse represents a generic Slack API response
@@ -40,7 +55,7 @@ type SlackResponse struct {
 }
 
 func (c *Client) get(endpoint string, params url.Values) (result []byte, err error) {
-	reqURL := fmt.Sprintf("%s/%s", baseURL, endpoint)
+	reqURL := fmt.Sprintf("%s/%s", c.baseURL, endpoint)
 	if params != nil {
 		reqURL += "?" + params.Encode()
 	}
@@ -81,7 +96,7 @@ func (c *Client) get(endpoint string, params url.Values) (result []byte, err err
 }
 
 func (c *Client) post(endpoint string, data interface{}) (result []byte, err error) {
-	reqURL := fmt.Sprintf("%s/%s", baseURL, endpoint)
+	reqURL := fmt.Sprintf("%s/%s", c.baseURL, endpoint)
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
