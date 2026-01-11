@@ -1,12 +1,13 @@
 package messages
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/spf13/cobra"
 
 	"github.com/piekstra/slack-cli/internal/client"
 	"github.com/piekstra/slack-cli/internal/output"
+	"github.com/piekstra/slack-cli/internal/validate"
 )
 
 type unreactOptions struct{}
@@ -25,6 +26,17 @@ func newUnreactCmd() *cobra.Command {
 }
 
 func runUnreact(channel, timestamp, emoji string, opts *unreactOptions, c *client.Client) error {
+	// Validate inputs
+	if err := validate.ChannelID(channel); err != nil {
+		return err
+	}
+	if err := validate.Timestamp(timestamp); err != nil {
+		return err
+	}
+
+	// Normalize emoji (remove colons)
+	emoji = validate.Emoji(emoji)
+
 	if c == nil {
 		var err error
 		c, err = client.New()
@@ -33,11 +45,8 @@ func runUnreact(channel, timestamp, emoji string, opts *unreactOptions, c *clien
 		}
 	}
 
-	// Remove colons if present
-	emoji = strings.Trim(emoji, ":")
-
 	if err := c.RemoveReaction(channel, timestamp, emoji); err != nil {
-		return err
+		return client.WrapError(fmt.Sprintf("remove reaction :%s:", emoji), err)
 	}
 
 	output.Printf("Removed :%s: reaction\n", emoji)

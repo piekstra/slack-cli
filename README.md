@@ -137,7 +137,7 @@ slack-cli channels invite C1234567890 U1111111111 U2222222222
 | `list` | `--types`, `--limit`, `--exclude-archived` | List channels |
 | `get <id>` | | Get channel details |
 | `create <name>` | `--private` | Create a channel |
-| `archive <id>` | | Archive a channel |
+| `archive <id>` | `--force` | Archive a channel (prompts for confirmation) |
 | `unarchive <id>` | | Unarchive a channel |
 | `set-topic <id> <topic>` | | Set channel topic |
 | `set-purpose <id> <purpose>` | | Set channel purpose |
@@ -166,6 +166,10 @@ slack-cli users get U1234567890
 ```bash
 # Send a message (uses Block Kit formatting by default)
 slack-cli messages send C1234567890 "Hello, *world*!"
+
+# Send from stdin (use "-" as text argument)
+echo "Hello from stdin" | slack-cli messages send C1234567890 -
+cat message.txt | slack-cli messages send C1234567890 -
 
 # Send plain text (no formatting)
 slack-cli messages send C1234567890 "Plain text" --simple
@@ -202,9 +206,9 @@ slack-cli messages unreact C1234567890 1234567890.123456 thumbsup
 
 | Command | Flags | Description |
 |---------|-------|-------------|
-| `send <channel> <text>` | `--thread`, `--blocks`, `--simple` | Send a message |
+| `send <channel> <text>` | `--thread`, `--blocks`, `--simple` | Send a message (use `-` for stdin) |
 | `update <channel> <ts> <text>` | `--blocks`, `--simple` | Update a message |
-| `delete <channel> <ts>` | | Delete a message |
+| `delete <channel> <ts>` | `--force` | Delete a message (prompts for confirmation) |
 | `history <channel>` | `--limit`, `--oldest`, `--latest` | Get channel history |
 | `thread <channel> <ts>` | `--limit` | Get thread replies |
 | `react <channel> <ts> <emoji>` | | Add reaction |
@@ -235,11 +239,11 @@ slack-cli config delete-token
 
 #### Config Command Reference
 
-| Command | Description |
-|---------|-------------|
-| `set-token [token]` | Set API token (prompts if not provided) |
-| `show` | Show current configuration status |
-| `delete-token` | Delete stored API token |
+| Command | Flags | Description |
+|---------|-------|-------------|
+| `set-token [token]` | | Set API token (prompts if not provided) |
+| `show` | | Show current configuration status |
+| `delete-token` | `--force` | Delete stored API token (prompts for confirmation) |
 
 ### Output Formats
 

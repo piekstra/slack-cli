@@ -1,18 +1,28 @@
 package messages
 
 import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/spf13/cobra"
 
 	"github.com/piekstra/slack-cli/internal/client"
 	"github.com/piekstra/slack-cli/internal/output"
+	"github.com/piekstra/slack-cli/internal/validate"
 )
 
-type deleteOptions struct{}
+type deleteOptions struct {
+	force bool
+	stdin io.Reader // For testing
+}
 
 func newDeleteCmd() *cobra.Command {
 	opts := &deleteOptions{}
 
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "delete <channel> <timestamp>",
 		Short: "Delete a message",
 		Args:  cobra.ExactArgs(2),
@@ -20,9 +30,41 @@ func newDeleteCmd() *cobra.Command {
 			return runDelete(args[0], args[1], opts, nil)
 		},
 	}
+
+	cmd.Flags().BoolVarP(&opts.force, "force", "f", false, "Skip confirmation prompt")
+
+	return cmd
 }
 
 func runDelete(channel, timestamp string, opts *deleteOptions, c *client.Client) error {
+	// Validate inputs
+	if err := validate.ChannelID(channel); err != nil {
+		return err
+	}
+	if err := validate.Timestamp(timestamp); err != nil {
+		return err
+	}
+
+	// Prompt for confirmation unless --force
+	if !opts.force {
+		reader := opts.stdin
+		if reader == nil {
+			reader = os.Stdin
+		}
+
+		output.Printf("About to delete message %s in channel %s\n", timestamp, channel)
+		output.Printf("Are you sure? [y/N]: ")
+
+		scanner := bufio.NewScanner(reader)
+		if scanner.Scan() {
+			confirm := strings.TrimSpace(strings.ToLower(scanner.Text()))
+			if confirm != "y" && confirm != "yes" {
+				output.Println("Cancelled.")
+				return nil
+			}
+		}
+	}
+
 	if c == nil {
 		var err error
 		c, err = client.New()
@@ -32,7 +74,7 @@ func runDelete(channel, timestamp string, opts *deleteOptions, c *client.Client)
 	}
 
 	if err := c.DeleteMessage(channel, timestamp); err != nil {
-		return err
+		return client.WrapError(fmt.Sprintf("delete message %s", timestamp), err)
 	}
 
 	output.Println("Message deleted")

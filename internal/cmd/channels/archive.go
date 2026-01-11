@@ -1,18 +1,28 @@
 package channels
 
 import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/spf13/cobra"
 
 	"github.com/piekstra/slack-cli/internal/client"
 	"github.com/piekstra/slack-cli/internal/output"
+	"github.com/piekstra/slack-cli/internal/validate"
 )
 
-type archiveOptions struct{}
+type archiveOptions struct {
+	force bool
+	stdin io.Reader // For testing
+}
 
 func newArchiveCmd() *cobra.Command {
 	opts := &archiveOptions{}
 
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "archive <channel-id>",
 		Short: "Archive a channel",
 		Args:  cobra.ExactArgs(1),
@@ -20,9 +30,38 @@ func newArchiveCmd() *cobra.Command {
 			return runArchive(args[0], opts, nil)
 		},
 	}
+
+	cmd.Flags().BoolVarP(&opts.force, "force", "f", false, "Skip confirmation prompt")
+
+	return cmd
 }
 
 func runArchive(channelID string, opts *archiveOptions, c *client.Client) error {
+	// Validate channel ID
+	if err := validate.ChannelID(channelID); err != nil {
+		return err
+	}
+
+	// Prompt for confirmation unless --force
+	if !opts.force {
+		reader := opts.stdin
+		if reader == nil {
+			reader = os.Stdin
+		}
+
+		output.Printf("About to archive channel: %s\n", channelID)
+		output.Printf("Are you sure? [y/N]: ")
+
+		scanner := bufio.NewScanner(reader)
+		if scanner.Scan() {
+			confirm := strings.TrimSpace(strings.ToLower(scanner.Text()))
+			if confirm != "y" && confirm != "yes" {
+				output.Println("Cancelled.")
+				return nil
+			}
+		}
+	}
+
 	if c == nil {
 		var err error
 		c, err = client.New()
@@ -32,7 +71,7 @@ func runArchive(channelID string, opts *archiveOptions, c *client.Client) error 
 	}
 
 	if err := c.ArchiveChannel(channelID); err != nil {
-		return err
+		return client.WrapError(fmt.Sprintf("archive channel %s", channelID), err)
 	}
 
 	output.Printf("Archived channel: %s\n", channelID)
