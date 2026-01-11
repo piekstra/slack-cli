@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/piekstra/slack-cli/internal/version"
 )
 
 var (
@@ -23,6 +25,7 @@ Configure your API token with:
   slack-cli config set-token <your-token>
 
 Or set the SLACK_API_TOKEN environment variable.`,
+	Version: version.Version,
 }
 
 // Execute runs the root command
@@ -35,4 +38,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&outputJSON, "json", false, "Output in JSON format")
+
+	// Set custom version template to include commit and build date
+	rootCmd.SetVersionTemplate("slack-cli " + version.Info() + "\n")
 }
