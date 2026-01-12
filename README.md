@@ -47,12 +47,12 @@ make build
    oauth_config:
      scopes:
        bot:
+         - channels:history
+         - channels:manage
          - channels:read
-         - channels:write
          - chat:write
+         - groups:history
          - groups:read
-         - im:read
-         - mpim:read
          - reactions:write
          - team:read
          - users:read
@@ -68,15 +68,7 @@ make build
    # Paste your token when prompted
    ```
 
-Your token is stored securely in macOS Keychain.
-
-### Verify Setup
-
-```bash
-slack-cli config test
-```
-
-This tests your token against the Slack API and shows workspace/user info.
+Your token is stored securely in macOS Keychain (or config file on Linux).
 
 ### Alternative: Environment Variable
 
@@ -110,12 +102,17 @@ Replace `op://Personal/slack-cli/api_token` with your 1Password secret reference
 
 The manifest above includes these scopes:
 
-- `channels:read` - List channels
-- `channels:write` - Create/archive channels
-- `chat:write` - Send messages
-- `users:read` - List users
-- `reactions:write` - Add/remove reactions
-- `team:read` - Get workspace info
+| Scope | Purpose |
+|-------|---------|
+| `channels:read` | List public channels, get channel info |
+| `channels:history` | Read message history from public channels |
+| `channels:manage` | Create, archive, set topic/purpose, invite users |
+| `chat:write` | Send, update, delete messages |
+| `groups:read` | List private channels |
+| `groups:history` | Read message history from private channels |
+| `reactions:write` | Add/remove reactions |
+| `team:read` | Get workspace info |
+| `users:read` | List users, get user info |
 
 ## Global Flags
 
@@ -263,9 +260,6 @@ slack-cli config set-token xoxb-your-token-here
 # Show current config status
 slack-cli config show
 
-# Test authentication
-slack-cli config test
-
 # Delete stored token
 slack-cli config delete-token
 ```
@@ -276,7 +270,6 @@ slack-cli config delete-token
 |---------|-------|-------------|
 | `set-token [token]` | | Set API token (prompts if not provided) |
 | `show` | | Show current configuration status |
-| `test` | | Test Slack authentication |
 | `delete-token` | `--force` | Delete stored API token (prompts for confirmation) |
 
 ### Output Formats

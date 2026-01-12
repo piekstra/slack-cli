@@ -79,7 +79,6 @@ output.KeyValue("ID", item.ID)  // For detail views
 
 - `--output, -o` - Output format: text (default), json, or table
 - `--no-color` - Disable colored output
-- `--workspace, -w` - Workspace override (not yet implemented)
 
 ## Testing
 
