@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.2](https://github.com/piekstra/slack-chat-api/compare/v3.0.1...v3.0.2) (2026-01-12)
+
+
+### Bug Fixes
+
+* Use PAT for release-please to trigger release workflow ([#43](https://github.com/piekstra/slack-chat-api/issues/43)) ([b63cbfa](https://github.com/piekstra/slack-chat-api/commit/b63cbfae7bbac288275d94fea83e483b62d25cff))
+
 ## [3.0.1](https://github.com/piekstra/slack-chat-api/compare/v3.0.0...v3.0.1) (2026-01-12)
 
 
