@@ -220,8 +220,9 @@ func TestRunDeleteToken_Confirmation(t *testing.T) {
 
 			// Now test delete with confirmation
 			deleteOpts := &deleteTokenOptions{
-				force: tt.force,
-				stdin: strings.NewReader(tt.input),
+				force:     tt.force,
+				stdin:     strings.NewReader(tt.input),
+				tokenType: "all",
 			}
 
 			err = runDeleteToken(deleteOpts)
