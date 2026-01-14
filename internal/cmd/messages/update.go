@@ -38,6 +38,9 @@ refined appearance. Use --simple to update with plain text instead.`,
 }
 
 func runUpdate(channel, timestamp, text string, opts *updateOptions, c *client.Client) error {
+	// Unescape shell-escaped characters (e.g., \! from zsh)
+	text = unescapeShellChars(text)
+
 	if c == nil {
 		var err error
 		c, err = client.New()

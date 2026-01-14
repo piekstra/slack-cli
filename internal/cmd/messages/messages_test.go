@@ -125,6 +125,59 @@ func TestTruncate(t *testing.T) {
 	}
 }
 
+func TestUnescapeShellChars(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "no escape sequences",
+			input:    "Hello World",
+			expected: "Hello World",
+		},
+		{
+			name:     "escaped exclamation mark",
+			input:    `Hello\! World\!`,
+			expected: "Hello! World!",
+		},
+		{
+			name:     "multiple escaped exclamation marks",
+			input:    `Test\!\!\!`,
+			expected: "Test!!!",
+		},
+		{
+			name:     "mixed content",
+			input:    `Hello\! This is a *bold* message\!`,
+			expected: "Hello! This is a *bold* message!",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "only backslash (not escaping !)",
+			input:    `Hello\nWorld`,
+			expected: `Hello\nWorld`,
+		},
+		{
+			name:     "backslash at end",
+			input:    `Hello\`,
+			expected: `Hello\`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := unescapeShellChars(tt.input)
+			if result != tt.expected {
+				t.Errorf("unescapeShellChars(%q) = %q, expected %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestBuildDefaultBlocks(t *testing.T) {
 	tests := []struct {
 		name string
@@ -565,6 +618,74 @@ func TestRunSend_Stdin(t *testing.T) {
 }
 
 // Validation tests
+
+func TestRunSend_UnescapesShellChars(t *testing.T) {
+	var receivedText string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		receivedText = body["text"].(string)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true,
+			"ts": "1234567890.123456",
+		})
+	}))
+	defer server.Close()
+
+	c := client.NewWithConfig(server.URL, "test-token", nil)
+	opts := &sendOptions{simple: true}
+
+	// Simulate what zsh does: escapes ! as \!
+	err := runSend("C123456789", `Hello\! Thanks\!`, opts, c)
+	require.NoError(t, err)
+	// The CLI should unescape \! back to !
+	assert.Equal(t, "Hello! Thanks!", receivedText)
+}
+
+func TestRunSend_UnescapesStdinContent(t *testing.T) {
+	var receivedText string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		receivedText = body["text"].(string)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true,
+			"ts": "1234567890.123456",
+		})
+	}))
+	defer server.Close()
+
+	c := client.NewWithConfig(server.URL, "test-token", nil)
+	opts := &sendOptions{
+		simple: true,
+		stdin:  strings.NewReader(`Hello\! From stdin\!`),
+	}
+
+	err := runSend("C123456789", "-", opts, c)
+	require.NoError(t, err)
+	// Stdin content should also be unescaped
+	assert.Equal(t, "Hello! From stdin!", receivedText)
+}
+
+func TestRunUpdate_UnescapesShellChars(t *testing.T) {
+	var receivedText string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		receivedText = body["text"].(string)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true,
+		})
+	}))
+	defer server.Close()
+
+	c := client.NewWithConfig(server.URL, "test-token", nil)
+	opts := &updateOptions{simple: true}
+
+	err := runUpdate("C123456789", "1234567890.123456", `Updated\! Text\!`, opts, c)
+	require.NoError(t, err)
+	assert.Equal(t, "Updated! Text!", receivedText)
+}
 
 func TestRunSend_InvalidChannelID(t *testing.T) {
 	opts := &sendOptions{simple: true}

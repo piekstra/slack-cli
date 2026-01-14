@@ -53,6 +53,16 @@ func truncate(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
+// unescapeShellChars removes backslash escaping from common shell-escaped characters.
+// Some shells (particularly zsh) escape certain characters like ! even within single quotes.
+// This function restores the intended text by removing these unnecessary escapes.
+func unescapeShellChars(s string) string {
+	// Unescape common shell-escaped characters
+	// The most common issue is \! from zsh's bang history escaping
+	s = strings.ReplaceAll(s, `\!`, `!`)
+	return s
+}
+
 // buildDefaultBlocks creates a Block Kit section block with mrkdwn formatting.
 // This provides a more refined appearance compared to plain text messages.
 func buildDefaultBlocks(text string) []interface{} {

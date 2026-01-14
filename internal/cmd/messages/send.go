@@ -81,6 +81,9 @@ func runSend(channel, text string, opts *sendOptions, c *client.Client) error {
 		text = string(lines)
 	}
 
+	// Unescape shell-escaped characters (e.g., \! from zsh)
+	text = unescapeShellChars(text)
+
 	if text == "" {
 		return fmt.Errorf("message text cannot be empty")
 	}
