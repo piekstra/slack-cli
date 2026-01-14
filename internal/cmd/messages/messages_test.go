@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -741,4 +742,269 @@ func TestRunUnreact_InvalidTimestamp(t *testing.T) {
 	err := runUnreact("C123456789", "not-a-timestamp", "thumbsup", opts, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid timestamp")
+}
+
+// Tests for blocks-file and blocks-stdin features
+
+func TestRunSend_BlocksOnly(t *testing.T) {
+	var receivedBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&receivedBody)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true,
+			"ts": "1234567890.123456",
+		})
+	}))
+	defer server.Close()
+
+	c := client.NewWithConfig(server.URL, "test-token", nil)
+	opts := &sendOptions{blocksJSON: `[{"type":"section","text":{"type":"mrkdwn","text":"Hello from blocks"}}]`}
+
+	// Empty text, blocks only
+	err := runSend("C123456789", "", opts, c)
+	require.NoError(t, err)
+
+	// Verify text was not sent (Slack allows blocks without text)
+	_, hasText := receivedBody["text"]
+	assert.False(t, hasText, "text should not be included when empty")
+
+	// Verify blocks were sent
+	blocks := receivedBody["blocks"].([]interface{})
+	assert.Len(t, blocks, 1)
+}
+
+func TestRunSend_BlocksFile(t *testing.T) {
+	// Create a temporary blocks file
+	tmpFile, err := os.CreateTemp("", "blocks-*.json")
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	blocksJSON := `[{"type":"section","text":{"type":"mrkdwn","text":"From file"}}]`
+	_, err = tmpFile.WriteString(blocksJSON)
+	require.NoError(t, err)
+	tmpFile.Close()
+
+	var receivedBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&receivedBody)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true,
+			"ts": "1234567890.123456",
+		})
+	}))
+	defer server.Close()
+
+	c := client.NewWithConfig(server.URL, "test-token", nil)
+	opts := &sendOptions{blocksFile: tmpFile.Name()}
+
+	err = runSend("C123456789", "Fallback text", opts, c)
+	require.NoError(t, err)
+
+	// Verify blocks were parsed from file
+	blocks := receivedBody["blocks"].([]interface{})
+	assert.Len(t, blocks, 1)
+	section := blocks[0].(map[string]interface{})
+	textObj := section["text"].(map[string]interface{})
+	assert.Equal(t, "From file", textObj["text"])
+}
+
+func TestRunSend_BlocksFileOnly(t *testing.T) {
+	// Create a temporary blocks file
+	tmpFile, err := os.CreateTemp("", "blocks-*.json")
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	blocksJSON := `[{"type":"section","text":{"type":"mrkdwn","text":"From file only"}}]`
+	_, err = tmpFile.WriteString(blocksJSON)
+	require.NoError(t, err)
+	tmpFile.Close()
+
+	var receivedBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&receivedBody)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true,
+			"ts": "1234567890.123456",
+		})
+	}))
+	defer server.Close()
+
+	c := client.NewWithConfig(server.URL, "test-token", nil)
+	opts := &sendOptions{blocksFile: tmpFile.Name()}
+
+	// No text, only blocks from file
+	err = runSend("C123456789", "", opts, c)
+	require.NoError(t, err)
+
+	// Verify text was not sent
+	_, hasText := receivedBody["text"]
+	assert.False(t, hasText, "text should not be included when empty")
+
+	// Verify blocks were sent
+	blocks := receivedBody["blocks"].([]interface{})
+	assert.Len(t, blocks, 1)
+}
+
+func TestRunSend_BlocksFileNotFound(t *testing.T) {
+	c := client.NewWithConfig("http://localhost", "test-token", nil)
+	opts := &sendOptions{blocksFile: "/nonexistent/file.json"}
+
+	err := runSend("C123456789", "text", opts, c)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reading blocks file")
+}
+
+func TestRunSend_BlocksFileInvalidJSON(t *testing.T) {
+	// Create a temporary blocks file with invalid JSON
+	tmpFile, err := os.CreateTemp("", "blocks-*.json")
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.WriteString("not valid json")
+	require.NoError(t, err)
+	tmpFile.Close()
+
+	c := client.NewWithConfig("http://localhost", "test-token", nil)
+	opts := &sendOptions{blocksFile: tmpFile.Name()}
+
+	err = runSend("C123456789", "text", opts, c)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid blocks JSON")
+}
+
+func TestRunSend_BlocksStdin(t *testing.T) {
+	var receivedBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&receivedBody)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true,
+			"ts": "1234567890.123456",
+		})
+	}))
+	defer server.Close()
+
+	c := client.NewWithConfig(server.URL, "test-token", nil)
+	blocksJSON := `[{"type":"section","text":{"type":"mrkdwn","text":"From stdin"}}]`
+	opts := &sendOptions{
+		blocksStdin: true,
+		stdin:       strings.NewReader(blocksJSON),
+	}
+
+	err := runSend("C123456789", "Fallback text", opts, c)
+	require.NoError(t, err)
+
+	// Verify blocks were parsed from stdin
+	blocks := receivedBody["blocks"].([]interface{})
+	assert.Len(t, blocks, 1)
+	section := blocks[0].(map[string]interface{})
+	textObj := section["text"].(map[string]interface{})
+	assert.Equal(t, "From stdin", textObj["text"])
+}
+
+func TestRunSend_BlocksStdinOnly(t *testing.T) {
+	var receivedBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&receivedBody)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true,
+			"ts": "1234567890.123456",
+		})
+	}))
+	defer server.Close()
+
+	c := client.NewWithConfig(server.URL, "test-token", nil)
+	blocksJSON := `[{"type":"section","text":{"type":"mrkdwn","text":"Stdin only"}}]`
+	opts := &sendOptions{
+		blocksStdin: true,
+		stdin:       strings.NewReader(blocksJSON),
+	}
+
+	// No text, only blocks from stdin
+	err := runSend("C123456789", "", opts, c)
+	require.NoError(t, err)
+
+	// Verify text was not sent
+	_, hasText := receivedBody["text"]
+	assert.False(t, hasText, "text should not be included when empty")
+
+	// Verify blocks were sent
+	blocks := receivedBody["blocks"].([]interface{})
+	assert.Len(t, blocks, 1)
+}
+
+func TestRunSend_BlocksStdinInvalidJSON(t *testing.T) {
+	c := client.NewWithConfig("http://localhost", "test-token", nil)
+	opts := &sendOptions{
+		blocksStdin: true,
+		stdin:       strings.NewReader("not valid json"),
+	}
+
+	err := runSend("C123456789", "text", opts, c)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid blocks JSON")
+}
+
+func TestRunSend_MutuallyExclusiveBlocksOptions(t *testing.T) {
+	tests := []struct {
+		name string
+		opts *sendOptions
+	}{
+		{
+			name: "blocks and blocks-file",
+			opts: &sendOptions{
+				blocksJSON: `[{"type":"section"}]`,
+				blocksFile: "/some/file.json",
+			},
+		},
+		{
+			name: "blocks and blocks-stdin",
+			opts: &sendOptions{
+				blocksJSON:  `[{"type":"section"}]`,
+				blocksStdin: true,
+			},
+		},
+		{
+			name: "blocks-file and blocks-stdin",
+			opts: &sendOptions{
+				blocksFile:  "/some/file.json",
+				blocksStdin: true,
+			},
+		},
+		{
+			name: "all three options",
+			opts: &sendOptions{
+				blocksJSON:  `[{"type":"section"}]`,
+				blocksFile:  "/some/file.json",
+				blocksStdin: true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := runSend("C123456789", "text", tt.opts, nil)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "only one of --blocks, --blocks-file, or --blocks-stdin")
+		})
+	}
+}
+
+func TestRunSend_TextStdinAndBlocksStdinConflict(t *testing.T) {
+	opts := &sendOptions{
+		blocksStdin: true,
+		stdin:       strings.NewReader("some content"),
+	}
+
+	// Using "-" for text means reading text from stdin, which conflicts with --blocks-stdin
+	err := runSend("C123456789", "-", opts, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot use '-' for text and --blocks-stdin together")
+}
+
+func TestRunSend_EmptyTextNoBlocks(t *testing.T) {
+	opts := &sendOptions{}
+
+	err := runSend("C123456789", "", opts, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "message text cannot be empty")
 }

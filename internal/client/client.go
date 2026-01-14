@@ -398,11 +398,15 @@ func (c *Client) GetUserInfo(userID string) (*User, error) {
 	return &result.User, nil
 }
 
-// SendMessage sends a message to a channel
+// SendMessage sends a message to a channel.
+// Text can be empty if blocks are provided (Slack API allows this).
 func (c *Client) SendMessage(channel, text, threadTS string, blocks []interface{}) (*Message, error) {
 	data := map[string]interface{}{
 		"channel": channel,
-		"text":    text,
+	}
+	// Only include text if non-empty (Slack allows omitting text when blocks are provided)
+	if text != "" {
+		data["text"] = text
 	}
 	if threadTS != "" {
 		data["thread_ts"] = threadTS
