@@ -15,6 +15,13 @@ type filesOptions struct {
 	sort      string
 	sortDir   string
 	highlight bool
+	scope     string
+	inChannel string
+	fromUser  string
+	after     string
+	before    string
+	fileType  string
+	hasPin    bool
 }
 
 func newFilesCmd() *cobra.Command {
@@ -27,7 +34,7 @@ func newFilesCmd() *cobra.Command {
 
 Requires a user token (xoxp-*) with search:read scope.
 
-Search modifiers:
+Search modifiers (can also use flags below):
   in:#channel    Search in specific channel
   from:@user     Files from specific user
   type:filetype  Filter by file type (pdf, doc, image, etc.)
@@ -36,9 +43,10 @@ Search modifiers:
 
 Examples:
   slack-chat-api search files "budget spreadsheet"
-  slack-chat-api search files "in:#finance quarterly report"
-  slack-chat-api search files "from:@alice type:pdf"
-  slack-chat-api search files "type:image logo"`,
+  slack-chat-api search files "quarterly report" --in "#finance"
+  slack-chat-api search files "logo" --from "@alice" --type image
+  slack-chat-api search files "contract" --type pdf
+  slack-chat-api search files "document" --scope public`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runSearchFiles(args[0], opts, nil)
@@ -50,6 +58,15 @@ Examples:
 	cmd.Flags().StringVarP(&opts.sort, "sort", "s", "score", "Sort by: score or timestamp")
 	cmd.Flags().StringVar(&opts.sortDir, "sort-dir", "desc", "Sort direction: asc or desc")
 	cmd.Flags().BoolVar(&opts.highlight, "highlight", false, "Highlight matching terms in results")
+
+	// Query builder flags
+	cmd.Flags().StringVar(&opts.scope, "scope", "", "Search scope: all, public, private, dm, mpim")
+	cmd.Flags().StringVar(&opts.inChannel, "in", "", "Filter by channel (e.g., \"#general\" or \"general\")")
+	cmd.Flags().StringVar(&opts.fromUser, "from", "", "Filter by user (e.g., \"@alice\" or \"alice\")")
+	cmd.Flags().StringVar(&opts.after, "after", "", "Files after date (YYYY-MM-DD)")
+	cmd.Flags().StringVar(&opts.before, "before", "", "Files before date (YYYY-MM-DD)")
+	cmd.Flags().StringVar(&opts.fileType, "type", "", "Filter by file type (pdf, doc, image, etc.)")
+	cmd.Flags().BoolVar(&opts.hasPin, "has-pin", false, "Files that are pinned")
 
 	return cmd
 }
@@ -68,7 +85,22 @@ func runSearchFiles(query string, opts *filesOptions, c *client.Client) error {
 		return err
 	}
 
-	result, err := c.SearchFiles(query, opts.count, opts.page, opts.sort, opts.sortDir, opts.highlight)
+	// Validate and build query with options
+	queryOpts := &QueryOptions{
+		Scope:     opts.scope,
+		InChannel: opts.inChannel,
+		FromUser:  opts.fromUser,
+		After:     opts.after,
+		Before:    opts.before,
+		FileType:  opts.fileType,
+		HasPin:    opts.hasPin,
+	}
+	if err := ValidateQueryOptions(queryOpts); err != nil {
+		return err
+	}
+	finalQuery := BuildQuery(query, queryOpts)
+
+	result, err := c.SearchFiles(finalQuery, opts.count, opts.page, opts.sort, opts.sortDir, opts.highlight)
 	if err != nil {
 		return err
 	}

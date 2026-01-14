@@ -13,11 +13,18 @@ import (
 )
 
 type messagesOptions struct {
-	count     int
-	page      int
-	sort      string
-	sortDir   string
-	highlight bool
+	count       int
+	page        int
+	sort        string
+	sortDir     string
+	highlight   bool
+	scope       string
+	inChannel   string
+	fromUser    string
+	after       string
+	before      string
+	hasLink     bool
+	hasReaction bool
 }
 
 func newMessagesCmd() *cobra.Command {
@@ -30,7 +37,7 @@ func newMessagesCmd() *cobra.Command {
 
 Requires a user token (xoxp-*) with search:read scope.
 
-Search modifiers:
+Search modifiers (can also use flags below):
   in:#channel    Search in specific channel
   in:@user       Search in DMs with user
   from:@user     Messages from specific user
@@ -41,9 +48,11 @@ Search modifiers:
 
 Examples:
   slack-chat-api search messages "quarterly report"
-  slack-chat-api search messages "in:#engineering bug fix"
-  slack-chat-api search messages "from:@alice project update"
-  slack-chat-api search messages "after:2025-01-01 deployment"`,
+  slack-chat-api search messages "bug fix" --in "#engineering"
+  slack-chat-api search messages "project update" --from "@alice"
+  slack-chat-api search messages "deployment" --after 2025-01-01
+  slack-chat-api search messages "test" --scope public
+  slack-chat-api search messages "meeting" --has-link --has-reaction`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runSearchMessages(args[0], opts, nil)
@@ -55,6 +64,15 @@ Examples:
 	cmd.Flags().StringVarP(&opts.sort, "sort", "s", "score", "Sort by: score or timestamp")
 	cmd.Flags().StringVar(&opts.sortDir, "sort-dir", "desc", "Sort direction: asc or desc")
 	cmd.Flags().BoolVar(&opts.highlight, "highlight", false, "Highlight matching terms in results")
+
+	// Query builder flags
+	cmd.Flags().StringVar(&opts.scope, "scope", "", "Search scope: all, public, private, dm, mpim")
+	cmd.Flags().StringVar(&opts.inChannel, "in", "", "Filter by channel (e.g., \"#general\" or \"general\")")
+	cmd.Flags().StringVar(&opts.fromUser, "from", "", "Filter by user (e.g., \"@alice\" or \"alice\")")
+	cmd.Flags().StringVar(&opts.after, "after", "", "Messages after date (YYYY-MM-DD)")
+	cmd.Flags().StringVar(&opts.before, "before", "", "Messages before date (YYYY-MM-DD)")
+	cmd.Flags().BoolVar(&opts.hasLink, "has-link", false, "Messages containing links")
+	cmd.Flags().BoolVar(&opts.hasReaction, "has-reaction", false, "Messages with reactions")
 
 	return cmd
 }
@@ -73,7 +91,22 @@ func runSearchMessages(query string, opts *messagesOptions, c *client.Client) er
 		return err
 	}
 
-	result, err := c.SearchMessages(query, opts.count, opts.page, opts.sort, opts.sortDir, opts.highlight)
+	// Validate and build query with options
+	queryOpts := &QueryOptions{
+		Scope:       opts.scope,
+		InChannel:   opts.inChannel,
+		FromUser:    opts.fromUser,
+		After:       opts.after,
+		Before:      opts.before,
+		HasLink:     opts.hasLink,
+		HasReaction: opts.hasReaction,
+	}
+	if err := ValidateQueryOptions(queryOpts); err != nil {
+		return err
+	}
+	finalQuery := BuildQuery(query, queryOpts)
+
+	result, err := c.SearchMessages(finalQuery, opts.count, opts.page, opts.sort, opts.sortDir, opts.highlight)
 	if err != nil {
 		return err
 	}

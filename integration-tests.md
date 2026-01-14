@@ -311,7 +311,60 @@ First, create a message with a unique identifier that we can search for:
 | 3 | `slack-chat-api search messages "test"` | Error mentioning user token requirement |
 | 4 | `slack-chat-api config set-token xoxp-your-user-token` | Re-configure user token |
 
-### 3B.9 Cleanup: Delete Search Test Message
+### 3B.9 User Search Tests
+
+| Step | Command | Expected |
+|------|---------|----------|
+| 1 | `slack-chat-api users search "test"` | Lists users matching "test" (or "No users found") |
+| 2 | `slack-chat-api users search "test" -o json` | Valid JSON array |
+| 3 | `slack-chat-api users search "nonexistent12345xyz"` | "No users found" |
+| 4 | `slack-chat-api users search "$TEST_USERNAME" --field name` | Matches by username only |
+| 5 | `slack-chat-api users search "test" --field email` | Matches by email only |
+| 6 | `slack-chat-api users search "bot" --include-bots` | Includes bot users in results |
+| 7 | `slack-chat-api users search "test" --field invalid` | Error: invalid field |
+
+### 3B.10 Search Scope Filter Tests
+
+| Step | Command | Expected |
+|------|---------|----------|
+| 1 | `slack-chat-api search messages "$SEARCH_ID" --scope all` | Same as default (finds test message) |
+| 2 | `slack-chat-api search messages "$SEARCH_ID" --scope public` | Only public channel results |
+| 3 | `slack-chat-api search messages "test" --scope private` | Only private channel results (may be empty) |
+| 4 | `slack-chat-api search messages "test" --scope dm` | Only DM results (may be empty) |
+| 5 | `slack-chat-api search messages "test" --scope invalid` | Error: invalid scope |
+
+### 3B.11 Query Builder Flag Tests
+
+| Step | Command | Expected |
+|------|---------|----------|
+| 1 | `slack-chat-api search messages "test" --in "$TEST_CHANNEL_NAME"` | Results from specific channel |
+| 2 | `slack-chat-api search messages "test" --in "#$TEST_CHANNEL_NAME"` | Same (handles # prefix) |
+| 3 | `slack-chat-api search messages "test" --from "@$TEST_USERNAME"` | Results from specific user |
+| 4 | `slack-chat-api search messages "test" --after "2024-01-01"` | Results after date |
+| 5 | `slack-chat-api search messages "test" --before "2099-12-31"` | Results before date |
+| 6 | `slack-chat-api search messages "test" --after "2024-01-01" --before "2099-12-31"` | Results in date range |
+| 7 | `slack-chat-api search messages "test" --has-link` | Results containing links (may be empty) |
+| 8 | `slack-chat-api search messages "test" --has-reaction` | Results with reactions (may be empty) |
+| 9 | `slack-chat-api search files "test" --type pdf` | Only PDF files (may be empty) |
+
+### 3B.12 Combined Filters Tests
+
+| Step | Command | Expected |
+|------|---------|----------|
+| 1 | `slack-chat-api search messages "$SEARCH_ID" --in "$TEST_CHANNEL_NAME" --scope public` | Combined scope + channel filter |
+| 2 | `slack-chat-api search messages "test" --from "@$TEST_USERNAME" --after "2024-01-01"` | Combined from + date filter |
+| 3 | `slack-chat-api search messages "test" -o json --in "$TEST_CHANNEL_NAME"` | JSON output with filters |
+| 4 | `slack-chat-api search all "test" --scope public --in "$TEST_CHANNEL_NAME"` | Combined filters on search all |
+
+### 3B.13 Query Builder Error Cases
+
+| Step | Command | Expected |
+|------|---------|----------|
+| 1 | `slack-chat-api search messages "test" --after "invalid-date"` | Error: invalid date format |
+| 2 | `slack-chat-api search messages "test" --before "not-a-date"` | Error: invalid date format |
+| 3 | `slack-chat-api search messages "test" --scope badscope` | Error: invalid scope |
+
+### 3B.14 Cleanup: Delete Search Test Message
 
 | Step | Command | Expected |
 |------|---------|----------|
