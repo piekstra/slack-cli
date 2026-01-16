@@ -14,7 +14,7 @@ Thank you for your interest in contributing to slack-chat-api!
 
 ```bash
 # Clone the repository
-git clone https://github.com/piekstra/slack-chat-api.git
+git clone https://github.com/open-cli-collective/slack-chat-api.git
 cd slack-chat-api
 
 # Install dependencies
@@ -147,6 +147,47 @@ func TestRunMy(t *testing.T) {
 - Use `gofmt` and `goimports` (enforced by linter)
 - Keep functions focused and testable
 - Add comments for non-obvious logic
+
+## Commit Messages
+
+We use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+feat: add new feature
+fix: fix a bug
+docs: update documentation
+test: add tests
+refactor: refactor code
+ci: update CI configuration
+chore: maintenance tasks
+```
+
+Examples:
+```
+feat: add channel archive command
+fix: handle rate limiting in message send
+docs: update installation instructions
+```
+
+## Project Structure
+
+```
+slack-chat-api/
+├── cmd/slack-chat-api/   # Entry point
+├── internal/
+│   ├── cmd/              # Command implementations
+│   │   ├── root/         # Root command and global flags
+│   │   ├── channels/     # Channel commands
+│   │   ├── users/        # User commands
+│   │   ├── messages/     # Message commands
+│   │   ├── workspace/    # Workspace info command
+│   │   └── config/       # Token management commands
+│   ├── client/           # Slack API client wrapper
+│   ├── keychain/         # Secure credential storage
+│   ├── output/           # Output formatting (text/json/table)
+│   └── version/          # Build-time version injection
+└── .github/              # GitHub workflows and templates
+```
 
 ## Reporting Issues
 

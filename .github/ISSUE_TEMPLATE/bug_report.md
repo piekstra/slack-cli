@@ -1,41 +1,35 @@
 ---
 name: Bug Report
-about: Report a bug
+about: Report a bug in slack-chat-api
 title: ''
 labels: bug
 assignees: ''
 ---
 
-**Version**
-
-Run `slack-cli --version` and paste the output:
+**slack-chat-api version**
+Run `slack-chat-api --version` and paste the output:
 
 ```
-slack-cli version ...
+slack-chat-api version ...
 ```
 
 **Environment**
-
-- OS: [e.g., macOS 14.0, Ubuntu 22.04]
-- Shell: [e.g., bash, zsh]
+- OS: [e.g., macOS 14.0, Ubuntu 22.04, Windows 11]
+- Shell: [e.g., bash, zsh, PowerShell]
 
 **Describe the bug**
-
-A clear description of what the bug is.
+A clear and concise description of what the bug is.
 
 **To Reproduce**
-
+Steps to reproduce the behavior:
 1. Run command '...'
 2. See error
 
 **Expected behavior**
-
 What you expected to happen.
 
 **Actual behavior**
-
-What actually happened. Include error messages.
+What actually happened. Include any error messages.
 
 **Additional context**
-
-Any other context about the problem.
+Add any other context about the problem here.

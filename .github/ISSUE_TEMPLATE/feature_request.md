@@ -1,29 +1,26 @@
 ---
 name: Feature Request
-about: Suggest a new feature
+about: Suggest a new feature for slack-chat-api
 title: ''
 labels: enhancement
 assignees: ''
 ---
 
 **Is your feature request related to a problem?**
-
-A clear description of the problem.
+A clear description of the problem. Ex. "I'm always frustrated when..."
 
 **Describe the solution you'd like**
+A clear description of what you want to happen.
 
-What you want to happen.
+**Describe alternatives you've considered**
+Any alternative solutions or features you've considered.
 
 **Example usage**
+Show how you'd use this feature:
 
 ```bash
-slack-cli <your-proposed-command>
+slack-chat-api <your-proposed-command>
 ```
 
-**Alternatives considered**
-
-Any alternative solutions you've considered.
-
 **Additional context**
-
-Any other context.
+Add any other context or screenshots about the feature request here.
