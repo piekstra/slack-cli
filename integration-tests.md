@@ -565,3 +565,34 @@ slack-chat-api search messages --help
 slack-chat-api config show
 slack-chat-api config test
 ```
+
+---
+
+## Cleanup Best Practices
+
+**Always clean up test artifacts.** Test messages left in shared channels create noise for other team members.
+
+### Guidelines
+
+1. **Track timestamps**: Save every TS value from message sends (TS₁, TS₂, TS₃, etc.)
+2. **Delete immediately after testing**: Don't batch cleanups - delete as you complete each test section
+3. **Verify deletion**: Check message history after cleanup to confirm removal
+4. **If interrupted**: Note any uncleaned timestamps and delete them before your next session
+
+### Quick Cleanup Commands
+
+```bash
+# Delete a single message
+slack-chat-api messages delete $TEST_CHANNEL_ID <timestamp> --force
+
+# Verify it's gone
+slack-chat-api messages history $TEST_CHANNEL_ID --limit 5
+```
+
+### What to Clean Up
+
+| Test Section | Artifacts | Cleanup Command |
+|--------------|-----------|-----------------|
+| Part 3 (Messaging) | Test messages TS₁, TS₂ | `messages delete` |
+| Part 3B (Search) | Search test message TS₃ | `messages delete` |
+| Part 5 (Destructive) | Test channels | `channels archive` |
